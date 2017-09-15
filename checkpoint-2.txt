@@ -1,0 +1,74 @@
+What's a RubyGem and why would you use one?
+
+A gem is effectivly a library.  There are three main components to a ruby Gem,
+1. Code - this is the bulk of the gem. 2. Documentation - how to use the gem
+3. Gemspec - this includes any dependencies the gem might have (usually other gems).
+
+The reason for using a gem is to save yourself work.  Many gems solve very common
+every day programming problems and are worked on and tested by a large open source
+community.  Because of this a gem can often provide a more stable solution than
+one you could create on your own - as well it is much less work.
+
+
+
+What's the difference between lazy and eager loading?
+
+Eager loading is when a program looks at all the files that a user might need
+and loads them when the program starts.  Lazy loading waits until a particular
+file is actually needed before loading it.
+
+
+
+In persistence.rb, why do the save methods need to be instance (vs. class)
+methods?
+
+Because the save method needs to be tied to a specific object.  An instance method
+is called on an object where as a class method is called on a class.  In this case
+what we are saving is an object, or an instance of class, so we need to use an
+instance method in order to save it.
+
+
+
+Given the Jar-Jar Binks example earlier, what is the final SQL query in
+persistence.rb's save! method?
+
+UPDATE characters
+SET character_name = "Jar-Jar Binks", star_rating = 1
+WHERE id = (the id of jar-jar binks);
+
+
+
+AddressBook's entries instance variable no longer returns anything. We'll fix
+this in a later checkpoint. What changes will we need to make?
+
+Entries will have to access the database when it is called in order to show
+the persistant data.  Perhaps it would be wise to create a @saved_entries and
+a @unsaved_entries so that a user can see what work a has been saved.
+
+
+
+Write a Ruby method that converts snake_case to CamelCase using regular
+expressions (you can test them on Rubular). Send your code to your mentor.
+
+def camel_case(snake_case_word)
+  array = snake_case_word.split("_")
+  array.each do |word|
+    word.capitalize!
+  end
+  array.join("")
+end
+
+
+
+Add a select method which takes an attribute and value and searches for all
+records that match:
+
+def find_by(attribute, value)
+  row = connection.get_first_row <<-SQL
+    SELECT #{columns.join ","} FROM #{table}
+    WHERE #{attribute} = #{value};
+  SQL
+
+  data = Hash[columns.zip(row)]
+  new(data)
+end
