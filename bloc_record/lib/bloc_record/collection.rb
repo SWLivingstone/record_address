@@ -26,5 +26,11 @@ module BlocRecord
       end
       new_collection
     end
+
+    def destroy_all
+      self.each do |entry|
+        entry.destroy
+      end
+    end
   end
 end

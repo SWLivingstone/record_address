@@ -21,6 +21,18 @@ module BlocRecord
        end
     end
 
+    def convert_to_hash(args)
+      if args.length == 1
+        array = args[0].split("=")
+      elsif args.is_a?(Array)
+        array = args
+      end
+      array.each do |string|
+        string.gsub!(/(\W|\d)/, "")
+      end
+      hash = Hash[*array]
+    end
+
     def convert_keys(options)
       options.keys.each {|k| options[k.to_s] = options.delete(k) if k.kind_of?(Symbol)}
       options
