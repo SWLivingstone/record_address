@@ -1,4 +1,5 @@
 require 'sqlite3'
+require 'pg'
 require 'bloc_record/utility'
 
 module Schema
@@ -8,9 +9,17 @@ module Schema
 
   def schema
      unless @schema
-       @schema = {}
-       connection.table_info(table) do |col|
-         @schema[col["name"]] = col["type"]
+       if BlocRecord.platform == :sqlite3
+         @schema = {}
+         connection.table_info(table) do |col|
+           @schema[col["name"]] = col["type"]
+         end
+       elsif BlocRecord.platform == :pg
+         @schema = {}
+         connection.query("SELECT * FROM #{table} LIMIT 1").fields do |col|
+           puts col
+          @schema[col["name"]] = col["type"]
+         end
        end
      end
      @schema

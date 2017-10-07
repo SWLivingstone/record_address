@@ -1,4 +1,5 @@
 require 'sqlite3'
+require 'pg'
 require 'bloc_record/schema'
 
 module Persistence
@@ -50,16 +51,26 @@ module Persistence
     def create(attrs)
       attrs = BlocRecord::Utility.convert_keys(attrs)
       attrs.delete "id"
+      if BlocRecord.platform == :sqlite3
       vals = attributes.map { |key| BlocRecord::Utility.sql_strings(attrs[key]) }
 
-      connection.execute <<-SQL
-        INSERT INTO #{table} (#{attributes.join ","})
-        VALUES (#{vals.join ","});
-      SQL
+        connection.execute <<-SQL
+          INSERT INTO #{table} (#{attributes.join ","})
+          VALUES (#{vals.join ","});
+        SQL
 
-      data = Hash[attributes.zip attrs.values]
-      data["id"] = connection.execute("SELECT last_insert_rowid();")[0][0]
-      new(data)
+        data = Hash[attributes.zip attrs.values]
+        data["id"] = connection.execute("SELECT last_insert_rowid();")[0][0]
+        new(data)
+      elsif BlocRecord.platform == :pg
+        data = attrs
+        connection.exec(
+        "INSERT INTO #{table} (#{attrs.keys.join ","})
+        VALUES ('#{attrs.values.join "','"}') RETURNING id"
+        )
+        data["id"] = connection.exec("SELECT max(id) FROM #{table}").getvalue(0,0)
+        data
+      end
     end
 
     def update(ids, updates)
