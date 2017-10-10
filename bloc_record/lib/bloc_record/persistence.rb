@@ -35,7 +35,7 @@ module Persistence
   end
 
   def update_attributes(updates)
-    self.class.update(self.id, updates)
+    self.class.update(self.id.to_i, updates)
   end
 
   def update_name(name)
@@ -65,8 +65,8 @@ module Persistence
       elsif BlocRecord.platform == :pg
         data = attrs
         connection.exec(
-        "INSERT INTO #{table} (#{attrs.keys.join ","})
-        VALUES ('#{attrs.values.join "','"}') RETURNING id"
+          "INSERT INTO #{table} (#{attrs.keys.join ","})
+          VALUES ('#{attrs.values.join "','"}')"
         )
         data["id"] = connection.exec("SELECT max(id) FROM #{table}").getvalue(0,0)
         data
@@ -84,7 +84,7 @@ module Persistence
       updates.delete "id"
       updates_array = updates.map { |key, value| "#{key}=#{BlocRecord::Utility.sql_strings(value)}" }
 
-      if ids.class == Fixnum
+      if ids.class == Fixnum #|| (ids.class == String && ids.length == 1)
         where_clause = "WHERE id = #{ids};"
       elsif ids.class == Array
         where_clause = ids.empty? ? ";" : "WHERE id IN (#{ids.join(",")});"
@@ -92,11 +92,17 @@ module Persistence
         where_clause = ";"
       end
 
-      connection.execute <<-SQL
-        UPDATE #{table}
-        SET #{updates_array * ","} #{where_clause}
-      SQL
-
+      if BlocRecord.platform == :sqlite3
+        connection.execute <<-SQL
+          UPDATE #{table}
+          SET #{updates_array * ","} #{where_clause}
+        SQL
+      elsif BlocRecord.platform == :pg
+        connection.exec(
+          "UPDATE #{table}
+          SET #{updates_array * ","} #{where_clause}"
+        )
+      end
       true
     end
 
@@ -110,10 +116,15 @@ module Persistence
       else
         where_clause = "WHERE id = #{id.first};"
       end
-      connection.execute <<-SQL
-        DELETE FROM #{table} #{where_clause}
-      SQL
-
+      if BlocRecord.platform == :sqlite3
+        connection.execute <<-SQL
+          DELETE FROM #{table} #{where_clause}
+        SQL
+      elsif BlocRecord.platform == :pg
+        connection.exec(
+          "DELETE FROM #{table} #{where_clause}"
+        )
+      end
       true
     end
 
@@ -125,16 +136,21 @@ module Persistence
         conditions_hash = BlocRecord::Utility.convert_keys(conditions_hash)
         conditions = conditions_hash.map {|key, value| "#{key}=#{BlocRecord::Utility.sql_strings(value)}"}.join(" and ")
 
-        connection.execute <<-SQL
+        sql = <<-SQL
           DELETE FROM #{table}
           WHERE #{conditions};
         SQL
       else
-        connection.execute <<-SQL
+        sql = <<-SQL
           DELETE FROM #{table}
         SQL
       end
 
+      if BlocRecord.platform = :sqlite3
+        connection.execute(sql)
+      elsif BlocRecord.platform = :pg
+        connection.exec(sql)
+      end
       true
     end
   end

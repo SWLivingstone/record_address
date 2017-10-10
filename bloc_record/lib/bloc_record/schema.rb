@@ -4,7 +4,7 @@ require 'bloc_record/utility'
 
 module Schema
   def table
-     BlocRecord::Utility.underscore(name)
+    BlocRecord::Utility.underscore(name)
   end
 
   def schema
@@ -15,18 +15,20 @@ module Schema
            @schema[col["name"]] = col["type"]
          end
        elsif BlocRecord.platform == :pg
-         @schema = {}
-         connection.query("SELECT * FROM #{table} LIMIT 1").fields do |col|
-           puts col
-          @schema[col["name"]] = col["type"]
-         end
+         @schema = connection.query(
+          "SELECT * FROM #{table} LIMIT 1"
+         ).first.keys
        end
      end
      @schema
   end
 
   def columns
-     schema.keys
+    if BlocRecord.platform == :sqlite3
+      schema.keys
+    elsif BlocRecord.platform == :pg
+      schema
+    end
   end
 
   def attributes
@@ -34,8 +36,14 @@ module Schema
   end
 
   def count
-     connection.execute(<<-SQL)[0][0]
-       SELECT COUNT(*) FROM #{table}
-     SQL
+    if BlocRecord.platform == :sqlite3
+      connection.execute(<<-SQL)[0][0]
+        SELECT COUNT(*) FROM #{table}
+      SQL
+    elsif BlocRecord.platform == :pg
+      connection.exec(
+      "SELECT COUNT(*) FROM #{table}"
+      )
+    end
   end
 end

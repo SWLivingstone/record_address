@@ -6,8 +6,8 @@ module BlocRecord
     end
 
     def where(arguments)
-      key = arguments.keys[0]
-      value = arguments.values[0]
+      key = arguments.keys.first
+      value = arguments.values.first
       new_collection = Collection.new
       self.each do |entry|
         if entry.send(key) == value

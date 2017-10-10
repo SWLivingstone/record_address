@@ -4,7 +4,8 @@ require 'sqlite3'
  module Selection
 
    def find(*ids)
-     if not_valid_int(ids)
+     if not_valid_int(ids.first)
+       puts ids.inspect
        p "One or more of your inputs was not a valid record ID"
        return nil
      end
@@ -22,14 +23,21 @@ require 'sqlite3'
 
    def find_one(id)
      if not_valid_int(id)
+       puts ids.inspect
        p "Not a valid input for record ID"
        return nil
      end
-     row = connection.get_first_row <<-SQL
-       SELECT #{columns.join ","} FROM #{table}
-       WHERE id = #{id};
-     SQL
-
+     if BlocRecord.platform == :sqlite3
+       row = connection.get_first_row <<-SQL
+         SELECT #{columns.join ","} FROM #{table}
+         WHERE id = #{id};
+       SQL
+     elsif BlocRecord.platform == :pg
+       row = connection.exec(
+       "SELECT #{columns.join ","} FROM #{table}
+       WHERE id = #{id} LIMIT 1"
+       ).values.flatten
+     end
      init_object_from_row(row)
    end
 
@@ -93,11 +101,19 @@ require 'sqlite3'
    end
 
    def first
-     row = connection.get_first_row <<-SQL
-       SELECT #{columns.join ","} FROM #{table}
-       ORDER BY id ASC LIMIT 1;
-     SQL
-
+     if BlocRecord.platform == :sqlite3
+       row = connection.get_first_row <<-SQL
+         SELECT #{columns.join ","} FROM #{table}
+         ORDER BY id ASC LIMIT 1;
+       SQL
+     elsif BlocRecord.platform == :pg
+       columns
+       row = connection.exec(
+        "SELECT #{columns.join ","} FROM #{table}
+        ORDER BY id ASC LIMIT 1"
+       )
+       row = row.values.flatten
+     end
      init_object_from_row(row)
    end
 
@@ -111,10 +127,15 @@ require 'sqlite3'
    end
 
    def all
-     rows = connection.execute <<-SQL
-       SELECT #{columns.join ","} FROM #{table};
-     SQL
-
+    if BlocRecord.platform == :sqlite3
+      rows = connection.execute <<-SQL
+        SELECT #{columns.join ","} FROM #{table};
+      SQL
+    elsif BlocRecord.platform == :pg
+      rows = connection.exec(
+        "SELECT #{columns.join ","} FROM #{table}"
+      ).values
+    end
      rows_to_array(rows)
    end
 
@@ -141,8 +162,11 @@ require 'sqlite3'
        SELECT #{columns.join ","} FROM #{table}
        WHERE #{expression};
      SQL
-
-     rows = connection.execute(sql, params)
+     if BlocRecord.platform == :sqlite3
+       rows = connection.execute(sql, params)
+     elsif BlocRecord.platform == :pg
+       rows = connection.exec(sql, params).values
+     end
      rows_to_array(rows)
    end
 
@@ -153,10 +177,17 @@ require 'sqlite3'
        order = args.first.to_s
      end
 
-     rows = connection.execute <<-SQL
-       SELECT * FROM #{table}
-       ORDER BY #{order};
-     SQL
+     if BlocRecord.platform == :sqlite3
+       rows = connection.execute <<-SQL
+         SELECT * FROM #{table}
+         ORDER BY #{order};
+       SQL
+     elsif BlocRecord.platform == :pg
+       rows = connection.exec(
+       "SELECT * FROM #{table}
+       ORDER BY #{order}"
+       ).values
+     end
      rows_to_array(rows)
    end
 
