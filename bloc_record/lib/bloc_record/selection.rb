@@ -5,7 +5,6 @@ require 'sqlite3'
 
    def find(*ids)
      if not_valid_int(ids.first)
-       puts ids.inspect
        p "One or more of your inputs was not a valid record ID"
        return nil
      end
@@ -23,7 +22,6 @@ require 'sqlite3'
 
    def find_one(id)
      if not_valid_int(id)
-       puts ids.inspect
        p "Not a valid input for record ID"
        return nil
      end
@@ -107,7 +105,6 @@ require 'sqlite3'
          ORDER BY id ASC LIMIT 1;
        SQL
      elsif BlocRecord.platform == :pg
-       columns
        row = connection.exec(
         "SELECT #{columns.join ","} FROM #{table}
         ORDER BY id ASC LIMIT 1"
